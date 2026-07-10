@@ -14,12 +14,10 @@
   }
   body { font-family: 'Inter', sans-serif; background: #FAF7F2; color: var(--ink); min-height: 100vh; padding: 2rem 1rem; }
   .wrapper { max-width: 700px; margin: 0 auto; }
-  .logo-left, .logo-right { position: fixed; top: 50%; transform: translateY(-50%); width: 100px; opacity: 0.18; pointer-events: none; z-index: 0; }
-  .logo-left { left: 10px; }
-  .logo-right { right: 10px; transform: translateY(-50%) scaleX(-1); }
-  @media (max-width: 800px) { .logo-left, .logo-right { width: 60px; opacity: 0.12; } }
-  @media (max-width: 500px) { .logo-left, .logo-right { display: none; } }
-  header { text-align: center; padding: 2rem 0 2.5rem; border-bottom: 0.5px solid var(--border); margin-bottom: 2.5rem; }
+  header { text-align: center; padding: 2rem 0 2.5rem; border-bottom: 0.5px solid var(--border); margin-bottom: 2.5rem; position: relative; }
+  .rose-header-left { position: absolute; left: 0; top: 50%; transform: translateY(-60%); width: 75px; opacity: 0.75; }
+  .rose-header-right { position: absolute; right: 0; top: 50%; transform: translateY(-60%) scaleX(-1); width: 75px; opacity: 0.75; }
+  .rose-bottom { display: block; margin: 1.5rem auto 0; width: 55px; opacity: 0.6; }
   .eyebrow { font-size: 10px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 1rem; }
   h1 { font-family: 'Cormorant Garamond', serif; font-weight: 300; font-size: 2.4rem; color: var(--ink); }
   .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 0.5px solid var(--border); overflow-x: auto; }
@@ -61,9 +59,6 @@
 </style>
 </head>
 <body>
-<img src="logo.png" class="logo-left" alt="">
-<img src="logo.png" class="logo-right" alt="">
-
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <h3>Supprimer ce message ?</h3>
@@ -74,9 +69,10 @@
     </div>
   </div>
 </div>
-
 <div class="wrapper">
   <header>
+    <img src="logo.png" class="rose-header-left" alt="">
+    <img src="logo.png" class="rose-header-right" alt="">
     <p class="eyebrow">Livre d'or</p>
     <h1>Messages des invités</h1>
   </header>
@@ -102,27 +98,22 @@
     <div class="messages-list" id="messages-list-photos"></div>
     <div class="empty-state" id="empty-photos" style="display:none;"><p>Aucune photo pour le moment.</p></div>
   </div>
+  <img src="logo.png" class="rose-bottom" alt="">
   <footer>Naomi &amp; Yoann · 10.11.2026</footer>
   <p class="credit">Réalisé par sam.hag</p>
 </div>
-
 <script>
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwV9Gjwy5882gYvxEu1qSkI4twyP-5VRB1aCwfFAtX2tRS_hfYGVQkW73SU0Won1pUg/exec";
-let allMessages = [];
-let deleteRowIndex = -1;
-
+let allMessages = [], deleteRowIndex = -1;
 const modalOverlay = document.getElementById('modal-overlay');
 document.getElementById('modal-cancel').addEventListener('click', () => { modalOverlay.classList.remove('open'); deleteRowIndex = -1; });
 document.getElementById('modal-confirm').addEventListener('click', async () => {
   if (deleteRowIndex < 0) return;
   modalOverlay.classList.remove('open');
-  try {
-    await fetch(APPS_SCRIPT_URL + '?action=delete&row=' + deleteRowIndex);
-    await loadMessages();
-  } catch (e) { alert('Erreur lors de la suppression.'); }
+  try { await fetch(APPS_SCRIPT_URL + '?action=delete&row=' + deleteRowIndex); await loadMessages(); }
+  catch (e) { alert('Erreur lors de la suppression.'); }
   deleteRowIndex = -1;
 });
-
 async function loadMessages() {
   try {
     const response = await fetch(APPS_SCRIPT_URL);
@@ -142,7 +133,6 @@ async function loadMessages() {
     renderTab('tous'); renderTab('messages'); renderTab('photos');
   } catch (error) { document.getElementById('loading').innerHTML = 'Erreur lors du chargement.'; }
 }
-
 function renderTab(tabName) {
   const list = document.getElementById(`messages-list-${tabName}`);
   const empty = document.getElementById(`empty-${tabName}`);
@@ -151,14 +141,12 @@ function renderTab(tabName) {
   if (tabName === 'messages') msgs = allMessages.filter(m => m.audio || m.notes);
   if (tabName === 'photos') msgs = allMessages.filter(m => m.photo);
   if (!msgs.length) { empty.style.display = 'block'; return; }
-
   msgs.forEach(msg => {
     const div = document.createElement('div');
     div.className = 'message-item';
     const time = new Date(msg.time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const mimeType = msg.audioMimeType || 'audio/mp4';
     let content = '';
-
     if (tabName === 'tous') {
       if (msg.photo) content += `<img src="${msg.photo}" class="photo-display">`;
       if (msg.audio) content += `<audio class="audio-player" controls><source src="data:${mimeType};base64,${msg.audio}" type="${mimeType}"><source src="data:audio/mp4;base64,${msg.audio}" type="audio/mp4"><source src="data:audio/webm;base64,${msg.audio}" type="audio/webm"></audio>`;
@@ -168,16 +156,10 @@ function renderTab(tabName) {
       if (msg.audio) content += `<audio class="audio-player" controls><source src="data:${mimeType};base64,${msg.audio}" type="${mimeType}"><source src="data:audio/mp4;base64,${msg.audio}" type="audio/mp4"><source src="data:audio/webm;base64,${msg.audio}" type="audio/webm"></audio>`;
       if (msg.notes) content += `<div class="message-text">"${msg.notes}"</div>`;
     }
-    if (tabName === 'photos') {
-      content += `<img src="${msg.photo}" class="photo-display">`;
-    }
-
+    if (tabName === 'photos') { content += `<img src="${msg.photo}" class="photo-display">`; }
     div.innerHTML = `
       <div class="message-header">
-        <div>
-          <div class="message-name">${msg.name}</div>
-          <div class="message-time">${time}</div>
-        </div>
+        <div><div class="message-name">${msg.name}</div><div class="message-time">${time}</div></div>
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <button class="edit-btn" data-row="${msg.rowIndex}">✏️ Modifier</button>
           <span style="color:var(--gold);">▼</span>
@@ -188,30 +170,24 @@ function renderTab(tabName) {
         <button class="delete-btn" data-row="${msg.rowIndex}">🗑 Supprimer ce message</button>
       </div>
     `;
-
     div.querySelector('.message-header').addEventListener('click', (e) => {
       if (e.target.classList.contains('edit-btn')) return;
       div.querySelector('.message-content').classList.toggle('open');
-      const arrow = div.querySelector('.message-header span');
-      arrow.style.transform = div.querySelector('.message-content').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+      div.querySelector('.message-header span').style.transform = div.querySelector('.message-content').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
     });
-
     div.querySelector('.edit-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       div.querySelector('.message-content').classList.add('open');
       div.querySelector('.message-header span').style.transform = 'rotate(180deg)';
     });
-
     div.querySelector('.delete-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       deleteRowIndex = parseInt(e.target.getAttribute('data-row'));
       modalOverlay.classList.add('open');
     });
-
     list.appendChild(div);
   });
 }
-
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -220,7 +196,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById(`tab-${btn.getAttribute('data-tab')}`).classList.add('active');
   });
 });
-
 loadMessages();
 setInterval(loadMessages, 10000);
 </script>
